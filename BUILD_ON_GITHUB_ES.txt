@@ -1,0 +1,19 @@
+LEMON ASIO — COMPILAR SIN INSTALAR VISUAL STUDIO
+
+No necesitás instalar Visual Studio ni un compilador C++ en tu PC.
+La carpeta .github/workflows incluye una tarea para que GitHub compile
+el programa en una máquina Windows en la nube.
+
+PASOS:
+1. Creá un REPOSITORY en GitHub (no un Gist).
+2. Subí todos los archivos y carpetas de este proyecto, incluida .github.
+3. Hacé commit/push a la rama main o master.
+4. Abrí la pestaña Actions del repositorio.
+5. Elegí "Build LEMON ASIO for Windows".
+6. Presioná "Run workflow" y confirmá.
+7. Cuando termine correctamente, entrá en esa ejecución y descargá
+   el artifact "LEMON-ASIO-Windows-x64".
+8. Extraé el ZIP descargado y ejecutá LEMON_ASIO.exe.
+
+NOTA: esta compilación es el prototipo que enumera dispositivos de entrada
+ y salida de Windows. TODAVÍA NO es un controlador ASIO y no procesa audio.

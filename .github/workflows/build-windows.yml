@@ -1,0 +1,39 @@
+name: Build LEMON ASIO for Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Configure x64 build
+        run: cmake -S . -B build -A x64
+
+      - name: Compile Release
+        run: cmake --build build --config Release --parallel
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          $exe = "build/Release/LEMON_ASIO.exe"
+          if (!(Test-Path $exe)) {
+            throw "Build completed but $exe was not found."
+          }
+          Get-Item $exe | Format-List FullName, Length
+
+      - name: Upload compiled program
+        uses: actions/upload-artifact@v4
+        with:
+          name: LEMON-ASIO-Windows-x64
+          path: build/Release/LEMON_ASIO.exe
+          if-no-files-found: error
+          retention-days: 14
