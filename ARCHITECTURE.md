@@ -14,9 +14,9 @@ FL Studio (ASIO host)
 
 The USB microphone and USB headphones are separate audio devices. Their hardware clocks are not guaranteed to run at exactly the same rate. A duplex engine must monitor the capture/render queue relationship and compensate for drift (typically with adaptive resampling or a carefully controlled rate-matching strategy). Simply opening both streams at 48 kHz does not synchronize their physical clocks.
 
-## Current milestone (0.1.1)
+## Current milestone (0.1.3)
 
-The application enumerates active Windows capture and render endpoints independently and reads their shared-mode format and device-period metadata. It does not open a streaming client and does not expose an ASIO driver to FL Studio.
+The application enumerates active Windows capture and render endpoints independently and reads their shared-mode format and device-period metadata. This release also fixes the missing COM declarations in the GUI translation unit. It does not open a streaming client and does not expose an ASIO driver to FL Studio.
 
 ## Next milestones
 

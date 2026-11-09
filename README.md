@@ -1,4 +1,4 @@
-# LEMON ASIO — USB Audio Bridge (Milestone 0.1.1)
+# LEMON ASIO — USB Audio Bridge (Milestone 0.1.3)
 
 LEMON ASIO is a Windows 11 audio-driver project. This milestone is a **device-discovery prototype**, updated for the intended setup: a USB microphone as input and separate USB headphones as output.
 
@@ -59,7 +59,7 @@ https://www.image-line.com/fl-studio-learning/fl-studio-online-manual/html/recor
 
 ## Architecture roadmap
 
-1. **0.1.1 — Separate endpoint discovery:** implemented with Windows MMDevice/WASAPI metadata APIs.
+1. **0.1.3 — Separate endpoint discovery + COM header/build fix:** implemented with Windows MMDevice/WASAPI metadata APIs.
 2. **0.2 — Duplex WASAPI engine:** implement real capture from the USB microphone and playback to USB headphones, initially in shared mode, with event-driven buffering, device-loss recovery and clock-drift handling/resampling.
 3. **0.3 — ASIO interface:** implement the ASIO driver contract and host callbacks so an ASIO host such as FL Studio can enumerate the driver.
 4. **0.4 — Control panel + installer:** persist supported settings, register the 64-bit driver correctly, and add safe install/uninstall routines.
@@ -78,3 +78,8 @@ The original prototype source in this repository is provided under the MIT Licen
 This repository includes `.github/workflows/build-windows.yml`. Push the source to a GitHub **repository** (not a Gist), open the repository's **Actions** tab, select **Build LEMON ASIO for Windows**, and choose **Run workflow**. GitHub's hosted Windows runner performs the MSVC/CMake build. When it finishes, open that workflow run and download the artifact named `LEMON-ASIO-Windows-x64`.
 
 No local Visual Studio installation or C++ compiler is needed for this cloud build. A GitHub account and a repository with Actions enabled are required. This workflow builds only the current device-discovery prototype; it does not create or register an ASIO driver.
+
+
+## Build fix in 0.1.3
+
+The Windows GUI now includes `<objbase.h>` explicitly for `CoInitializeEx`, `CoUninitialize` and `COINIT_APARTMENTTHREADED`. The CMake target already links `ole32`, which supplies these COM functions. Control IDs also use pointer-sized casts to avoid 64-bit handle-conversion warnings.

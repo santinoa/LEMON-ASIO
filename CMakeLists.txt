@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(LEMON_ASIO_USB_BRIDGE VERSION 0.1.1 LANGUAGES CXX)
+project(LEMON_ASIO_USB_BRIDGE VERSION 0.1.3 LANGUAGES CXX)
 
 if(NOT WIN32)
     message(FATAL_ERROR "LEMON ASIO currently targets Windows 10/11 only.")

@@ -1,4 +1,4 @@
-LEMON ASIO — COMPILAR SIN INSTALAR VISUAL STUDIO
+LEMON ASIO 0.1.3 — COMPILAR SIN INSTALAR VISUAL STUDIO
 
 No necesitás instalar Visual Studio ni un compilador C++ en tu PC.
 La carpeta .github/workflows incluye una tarea para que GitHub compile
@@ -17,3 +17,13 @@ PASOS:
 
 NOTA: esta compilación es el prototipo que enumera dispositivos de entrada
  y salida de Windows. TODAVÍA NO es un controlador ASIO y no procesa audio.
+
+
+ACTUALIZAR UN REPOSITORIO EXISTENTE:
+- Copiá los archivos de esta versión sobre los del repositorio local.
+- No borres la carpeta oculta .git.
+- Abrí la terminal en la carpeta del repositorio y ejecutá:
+    git add .
+    git commit -m "Fix COM declarations for Windows build"
+    git push
+- Luego abrí Actions y revisá la nueva ejecución.

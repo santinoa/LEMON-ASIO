@@ -1,0 +1,28 @@
+LEMON ASIO 0.1.3 — ACTUALIZAR EL REPOSITORIO EXISTENTE
+
+1) Descargá LEMON_ASIO_0.1.3_COM_FIX.zip y extraelo.
+2) Entrá a la carpeta LEMON_ASIO del ZIP.
+3) Copiá todo su contenido.
+4) Pegalo en tu carpeta actual del repositorio:
+   C:\Users\Usuario\Downloads\LEMON_ASIO_0.1.2_GitHub_Build\LEMON_ASIO
+5) Aceptá combinar carpetas y reemplazar archivos.
+   IMPORTANTE: no borres la carpeta .git que ya existe en el repositorio.
+   El ZIP nuevo no contiene .git, así que la carpeta de Git se conserva.
+6) Abrí VS Code en la carpeta del repositorio y abrí Terminal > New Terminal.
+7) Ejecutá estos comandos, uno por uno:
+
+   git add .
+   git commit -m "Fix COM declarations for Windows build"
+   git push
+
+8) Abrí GitHub > Actions. El push iniciará una compilación nueva.
+9) Si termina en verde, descargá el artifact LEMON-ASIO-Windows-x64.
+
+QUÉ CORRIGE ESTA VERSIÓN:
+- Incluye objbase.h para declarar CoInitializeEx, CoUninitialize y
+  COINIT_APARTMENTTHREADED.
+- CMake ya enlazaba ole32; se conserva ese enlace.
+- Usa conversiones de ID de controles compatibles con punteros de 64 bits.
+
+NOTA: esto sigue siendo el prototipo que enumera dispositivos de audio.
+Todavía no es un controlador ASIO ni transmite audio.

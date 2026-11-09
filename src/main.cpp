@@ -1,6 +1,7 @@
 #include "audio_devices.h"
 
 #include <windows.h>
+#include <objbase.h>  // CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED
 #include <commctrl.h>
 #include <string>
 #include <vector>
@@ -120,35 +121,39 @@ void AddComboItems(HWND combo, const std::vector<const wchar_t*>& items, int sel
     SendMessageW(combo, CB_SETCURSEL, selected, 0);
 }
 
+HMENU MakeControlId(int id) {
+    return reinterpret_cast<HMENU>(static_cast<INT_PTR>(id));
+}
+
 HWND CreateDetailsBox(HWND parent, int id, int x, int y, int width, int height) {
     HWND box = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"Buscando dispositivos...",
         WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL,
-        x, y, width, height, parent, reinterpret_cast<HMENU>(id), g_instance, nullptr);
+        x, y, width, height, parent, MakeControlId(id), g_instance, nullptr);
     SendMessageW(box, WM_SETFONT, reinterpret_cast<WPARAM>(g_font), TRUE);
     return box;
 }
 
 void CreateControls(HWND window) {
     CreateLabel(window, L"LEMON ASIO", 34, 22, 420, 42, g_titleFont);
-    CreateLabel(window, L"USB AUDIO BRIDGE  /  WINDOWS 11  /  BUILD 0.1.1", 36, 64, 620, 22);
+    CreateLabel(window, L"USB AUDIO BRIDGE  /  WINDOWS 11  /  BUILD 0.1.3", 36, 64, 620, 22);
 
     HWND refresh = CreateWindowExW(0, L"BUTTON", L"Actualizar dispositivos",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
-        676, 45, 190, 34, window, reinterpret_cast<HMENU>(ID_REFRESH),
+        676, 45, 190, 34, window, MakeControlId(ID_REFRESH),
         g_instance, nullptr);
     SendMessageW(refresh, WM_SETFONT, reinterpret_cast<WPARAM>(g_font), TRUE);
 
     CreateLabel(window, L"ENTRADA  /  MICRÓFONO USB", 36, 112, 390, 22);
     g_inputCombo = CreateWindowExW(0, L"COMBOBOX", L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST | WS_VSCROLL,
-        36, 140, 390, 260, window, reinterpret_cast<HMENU>(ID_INPUT_COMBO),
+        36, 140, 390, 260, window, MakeControlId(ID_INPUT_COMBO),
         g_instance, nullptr);
     SendMessageW(g_inputCombo, WM_SETFONT, reinterpret_cast<WPARAM>(g_font), TRUE);
 
     CreateLabel(window, L"SALIDA  /  AURICULARES USB", 476, 112, 390, 22);
     g_outputCombo = CreateWindowExW(0, L"COMBOBOX", L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST | WS_VSCROLL,
-        476, 140, 390, 260, window, reinterpret_cast<HMENU>(ID_OUTPUT_COMBO),
+        476, 140, 390, 260, window, MakeControlId(ID_OUTPUT_COMBO),
         g_instance, nullptr);
     SendMessageW(g_outputCombo, WM_SETFONT, reinterpret_cast<WPARAM>(g_font), TRUE);
 
@@ -163,7 +168,7 @@ void CreateControls(HWND window) {
     CreateLabel(window, L"BUFFER", 36, 438, 100, 20);
     g_bufferCombo = CreateWindowExW(0, L"COMBOBOX", L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST,
-        36, 464, 170, 220, window, reinterpret_cast<HMENU>(ID_BUFFER_COMBO),
+        36, 464, 170, 220, window, MakeControlId(ID_BUFFER_COMBO),
         g_instance, nullptr);
     SendMessageW(g_bufferCombo, WM_SETFONT, reinterpret_cast<WPARAM>(g_font), TRUE);
     AddComboItems(g_bufferCombo, {L"64 samples", L"128 samples", L"256 samples",
@@ -172,7 +177,7 @@ void CreateControls(HWND window) {
     CreateLabel(window, L"FRECUENCIA", 232, 438, 150, 20);
     g_rateCombo = CreateWindowExW(0, L"COMBOBOX", L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST,
-        232, 464, 170, 220, window, reinterpret_cast<HMENU>(ID_RATE_COMBO),
+        232, 464, 170, 220, window, MakeControlId(ID_RATE_COMBO),
         g_instance, nullptr);
     SendMessageW(g_rateCombo, WM_SETFONT, reinterpret_cast<WPARAM>(g_font), TRUE);
     AddComboItems(g_rateCombo, {L"44100 Hz", L"48000 Hz", L"96000 Hz"}, 1);
@@ -183,7 +188,7 @@ void CreateControls(HWND window) {
 
     g_status = CreateWindowExW(0, L"STATIC", L"Inicializando...",
         WS_CHILD | WS_VISIBLE | SS_LEFT,
-        36, 568, 820, 26, window, reinterpret_cast<HMENU>(ID_STATUS),
+        36, 568, 820, 26, window, MakeControlId(ID_STATUS),
         g_instance, nullptr);
     SendMessageW(g_status, WM_SETFONT, reinterpret_cast<WPARAM>(g_font), TRUE);
 }
