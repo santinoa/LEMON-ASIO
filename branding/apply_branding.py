@@ -185,7 +185,7 @@ replace_exact(
     "https://kormix-io.github.io/KoordASIO/",
     "https://github.com/santinoa/LEMON-ASIO/blob/dev/lemon-audio-asio/CONFIGURATION.md",
 )
-replace_all(config_model, "KoordASIO", "LEMON Audio", minimum=1)
+replace_all(config_model, "KoordASIO", "LEMON Audio", minimum=0)
 
 replace_exact(
     "src/kdasioconfig/appinstance.cpp",
