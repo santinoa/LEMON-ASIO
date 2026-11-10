@@ -1,85 +1,46 @@
-# LEMON ASIO — USB Audio Bridge (Milestone 0.1.3)
+# LEMON Audio — experimental ASIO-compatible USB audio driver
 
-LEMON ASIO is a Windows 11 audio-driver project. This milestone is a **device-discovery prototype**, updated for the intended setup: a USB microphone as input and separate USB headphones as output.
+**Experimental Windows x64 build.** This branch is the first integration milestone; it is not yet declared stable or verified on every PC.
 
-## What this build does
+LEMON Audio is being built for a practical setup: use one USB device as the recording input (for example, a USB microphone) and a different USB device as the playback output (for example, USB headphones), from a DAW such as FL Studio.
 
-- Lists active Windows audio capture endpoints (USB microphones and other inputs).
-- Lists active Windows audio render endpoints (USB headphones, speakers and other outputs).
-- Marks the default Windows input and output independently.
-- Lets you inspect each endpoint's current shared-mode mix format and reported device periods.
-- Keeps the input and output selections separate, matching the intended USB microphone + USB headphones setup.
+## What this branch integrates
 
-## What it does not do yet
+- KoordASIO 2.3.1 as a pinned third-party codebase, itself derived from FlexASIO.
+- Separate WASAPI input and output endpoint selection through the ASIO driver interface.
+- Shared mode as the safe default, with Exclusive mode available in the control panel.
+- Buffer controls from 32 to 2048 samples.
+- A branded LEMON Audio control panel and Windows x64 installer.
+- A unique COM class ID and separate registry/configuration namespace so this driver does not overwrite the upstream KoordASIO registration.
 
-- It does not stream audio or process FL Studio audio.
-- It does not install/register an ASIO driver.
-- It does not change Windows sound settings, sample rate, buffer size or latency.
-- It does not guarantee low latency or synchronize independent USB device clocks yet.
+The upstream code is referenced as a Git submodule at a fixed commit. The build workflow applies a small, auditable branding/licensing script in the GitHub Actions workspace; it does not rewrite the upstream project history.
 
-## Requirements
+## Build without Visual Studio on your PC
 
-- Windows 10/11 x64 (target platform: Windows 11 x64)
-- Visual Studio 2022 Community or Build Tools with **Desktop development with C++**
-- MSVC v143 toolset
-- Windows 10/11 SDK
-- CMake 3.21 or newer
+1. Open the Actions tab of this repository.
+2. Choose **Build LEMON Audio (experimental)**.
+3. Select **Run workflow**.
+4. When the run succeeds, download the artifact **LEMON-Audio-0.3.0-Windows-x64**.
 
-## Build
+GitHub Actions uses a hosted Windows runner with MSVC, CMake, Ninja, Qt and Inno Setup. Your own computer only needs to download and run the installer.
 
-Open **x64 Native Tools Command Prompt for VS 2022**, move to this folder, then run:
+## First test in FL Studio
 
-```bat
-cmake -S . -B build -A x64
-cmake --build build --config Release
-```
+1. Install the experimental package.
+2. Open FL Studio and go to **Options → Audio Settings**.
+3. Select **LEMON Audio** in the device list.
+4. Open its ASIO panel and choose the USB microphone under Input and USB headphones under Output.
+5. Start with Shared mode and a 128-sample buffer. Test playback and recording before trying smaller buffers or Exclusive mode.
 
-The executable will be created at:
+The actual latency and stability depend on the two devices and their clocks. Start with a stable setting first; do not assume a smaller buffer will always work better.
 
-```text
-build\Release\LEMON_ASIO.exe
-```
+## Important status
 
-Alternatively, open this folder in Visual Studio 2022 using **File > Open > Folder** and select the CMake project.
+- The older root-level 0.1.x application remains a device-enumeration prototype; it is not the ASIO driver.
+- The 0.2.0 WASAPI monitor prototype is separate and is not used by this driver.
+- This branch has not yet been validated on your exact USB microphone/headphone pair or in your installed FL Studio. A green CI build only confirms compilation and packaging, not real-world audio quality.
+- Do not install it on top of KoordASIO if you want to compare the two. The COM registration and configuration paths are separated, but test one driver at a time.
 
-## First test
+## Licensing
 
-1. Connect the USB headphones and the USB microphone.
-2. In Windows Settings > System > Sound, verify that the headphones appear under Output and the microphone under Input.
-3. Run `LEMON_ASIO.exe` and press **Actualizar dispositivos**.
-4. Check the two lists separately. The microphone should appear under **Entrada** and the headphones under **Salida**.
-5. If one is missing, check Windows sound settings, USB connection and microphone privacy permissions.
-
-## Use the setup in FL Studio now
-
-The current FL Studio installation includes **FL Studio ASIO**, which can select a separate USB input and output. In FL Studio, press F10 > Audio, select **FL Studio ASIO**, open its panel, choose the USB microphone in Input and the USB headphones in Output. Then select the microphone as the input on an Insert mixer track. If FL Studio ASIO does not expose one of the devices, try ASIO4ALL and activate the microphone's input and headphones' output in its advanced device list.
-
-This is the fastest way to achieve the required setup while LEMON ASIO is being developed. See Image-Line's official USB microphone guide:
-https://www.image-line.com/fl-studio-learning/fl-studio-online-manual/html/recording_audio_USBmic.htm
-
-## Architecture roadmap
-
-1. **0.1.3 — Separate endpoint discovery + COM header/build fix:** implemented with Windows MMDevice/WASAPI metadata APIs.
-2. **0.2 — Duplex WASAPI engine:** implement real capture from the USB microphone and playback to USB headphones, initially in shared mode, with event-driven buffering, device-loss recovery and clock-drift handling/resampling.
-3. **0.3 — ASIO interface:** implement the ASIO driver contract and host callbacks so an ASIO host such as FL Studio can enumerate the driver.
-4. **0.4 — Control panel + installer:** persist supported settings, register the 64-bit driver correctly, and add safe install/uninstall routines.
-5. **0.5 — Validation:** test recording, playback, sample-rate negotiation, buffer stability, device switching and measured latency.
-
-## ASIO SDK licensing note
-
-No Steinberg ASIO SDK files are included in this repository. Before integrating the SDK, choose and comply with the licensing route Steinberg currently offers. Obtain any SDK materials from Steinberg's official developer portal rather than from an unverified package.
-
-## Project source license
-
-The original prototype source in this repository is provided under the MIT License (see `LICENSE.txt`). This does not grant rights to third-party SDK materials or trademarks.
-
-## Compile without installing Visual Studio on your PC
-
-This repository includes `.github/workflows/build-windows.yml`. Push the source to a GitHub **repository** (not a Gist), open the repository's **Actions** tab, select **Build LEMON ASIO for Windows**, and choose **Run workflow**. GitHub's hosted Windows runner performs the MSVC/CMake build. When it finishes, open that workflow run and download the artifact named `LEMON-ASIO-Windows-x64`.
-
-No local Visual Studio installation or C++ compiler is needed for this cloud build. A GitHub account and a repository with Actions enabled are required. This workflow builds only the current device-discovery prototype; it does not create or register an ASIO driver.
-
-
-## Build fix in 0.1.3
-
-The Windows GUI now includes `<objbase.h>` explicitly for `CoInitializeEx`, `CoUninitialize` and `COINIT_APARTMENTTHREADED`. The CMake target already links `ole32`, which supplies these COM functions. Control IDs also use pointer-sized casts to avoid 64-bit handle-conversion warnings.
+The integrated driver uses the Steinberg ASIO SDK 2.3.4 under its GPLv3 option. Accordingly, the combined LEMON Audio driver distribution in this branch is GPL-3.0-only. The original device-enumeration prototype's MIT notice is preserved separately in LICENSE-ORIGINAL-PROTOTYPE.txt. See THIRD_PARTY_NOTICES.md and the pinned upstream submodule for component-level notices.

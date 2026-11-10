@@ -1,0 +1,116 @@
+name: Build LEMON Audio (experimental)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev/lemon-audio-asio
+    paths:
+      - ".github/workflows/build-lemon-audio.yml"
+      - "branding/**"
+      - ".gitmodules"
+      - "third_party/KoordASIO"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-x64:
+    name: Build Windows x64 driver and installer
+    runs-on: windows-2022
+    timeout-minutes: 90
+    steps:
+      - name: Checkout project and pinned upstream source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Apply LEMON Audio branding and ASIO SDK license selection
+        shell: pwsh
+        run: python branding/apply_branding.py third_party/KoordASIO
+
+      - name: Set up MSVC x64
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.2"
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          modules: qtmultimedia
+          tools: tools_ninja tools_cmake
+          aqtversion: "==3.3.*"
+          cache: true
+
+      - name: Configure and build LEMON Audio Control
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = $env:GITHUB_WORKSPACE
+          cmake -S "$root/third_party/KoordASIO/src/kdasioconfig" -B "$root/build/gui" -G "NMake Makefiles" -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR" -DCMAKE_BUILD_TYPE=Release
+          if ($LASTEXITCODE -ne 0) { throw "GUI configure failed ($LASTEXITCODE)" }
+          cmake --build "$root/build/gui" --config Release
+          if ($LASTEXITCODE -ne 0) { throw "GUI build failed ($LASTEXITCODE)" }
+
+      - name: Configure and build ASIO driver
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = $env:GITHUB_WORKSPACE
+          cmake -S "$root/third_party/KoordASIO/src" -B "$root/build/driver" -G Ninja -DCMAKE_BUILD_TYPE=Release
+          if ($LASTEXITCODE -ne 0) { throw "Driver configure failed ($LASTEXITCODE)" }
+          cmake --build "$root/build/driver" --config Release
+          if ($LASTEXITCODE -ne 0) { throw "Driver build failed ($LASTEXITCODE)" }
+
+      - name: Stage driver and Qt runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = $env:GITHUB_WORKSPACE
+          $deploy = "$root/deploy"
+          $driverBin = "$root/build/driver/install/bin"
+          $gui = "$root/build/gui/LEMONAudioControl.exe"
+          if (!(Test-Path "$driverBin/LEMONAudio.dll")) { throw "LEMONAudio.dll was not produced" }
+          if (!(Test-Path $gui)) { throw "LEMONAudioControl.exe was not produced" }
+          New-Item -ItemType Directory -Force -Path $deploy | Out-Null
+          & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --release --no-compiler-runtime --dir $deploy --qmldir "$root/third_party/KoordASIO/src/kdasioconfig" --no-system-d3d-compiler --no-opengl-sw $gui
+          if ($LASTEXITCODE -ne 0) { throw "windeployqt failed ($LASTEXITCODE)" }
+          Copy-Item $gui $deploy -Force
+          Get-ChildItem $driverBin -Filter "*.dll" | Copy-Item -Destination $deploy -Force
+          if ($env:VCToolsRedistDir) {
+            $crt = Get-ChildItem (Join-Path $env:VCToolsRedistDir 'x64') -Directory | Where-Object { $_.Name -like 'Microsoft.VC*.CRT' } | Sort-Object Name -Descending | Select-Object -First 1
+            if ($crt) { Copy-Item (Join-Path $crt.FullName '*.dll') -Destination $deploy -Force }
+          }
+          $bytes = [System.IO.File]::ReadAllBytes("$deploy/LEMONAudio.dll")
+          $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
+          $machineType = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
+          if ($machineType -ne 0x8664) { throw ("LEMONAudio.dll is not x64 (machine 0x{0:X4})" -f $machineType) }
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = $env:GITHUB_WORKSPACE
+          New-Item -ItemType Directory -Force -Path "$root/Output" | Out-Null
+          & "$env:ProgramFiles(x86)/Inno Setup 6/ISCC.exe" "$root/branding/lemon-audio.iss" "/DApplicationVersion=0.3.0"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed ($LASTEXITCODE)" }
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: LEMON-Audio-0.3.0-Windows-x64
+          path: Output/LEMON-Audio-Setup-0.3.0.exe
+          if-no-files-found: error
