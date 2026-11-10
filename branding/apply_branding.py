@@ -97,7 +97,7 @@ replace_exact(
 
 # The ASIO registry name, COM ProgID and class identifier must all be unique.
 rgs = "src/flexasio/FlexASIO/flexasio.rgs"
-replace_exact(rgs, "koordasio.KoordASIO.1", "lemonaudio.LEMONAudio.1")
+replace_exact(rgs, "koordasio.KoordASIO.1", "lemonaudio.LEMONAudio.1", expected=2)
 replace_all(rgs, "KoordASIO", "LEMON Audio", minimum=2)
 replace_all(rgs, OLD_DRIVER_GUID, DRIVER_GUID, minimum=2)
 
