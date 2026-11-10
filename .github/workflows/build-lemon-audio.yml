@@ -105,7 +105,10 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $root = $env:GITHUB_WORKSPACE
           New-Item -ItemType Directory -Force -Path "$root/Output" | Out-Null
-          & "$env:ProgramFiles(x86)/Inno Setup 6/ISCC.exe" "$root/branding/lemon-audio.iss" "/DApplicationVersion=0.3.0"
+          $programFilesX86 = [Environment]::GetFolderPath([Environment+SpecialFolder]::ProgramFilesX86)
+          $innoCompiler = Join-Path $programFilesX86 "Inno Setup 6/ISCC.exe"
+          if (!(Test-Path $innoCompiler)) { throw "Inno Setup compiler not found: $innoCompiler" }
+          & $innoCompiler "$root/branding/lemon-audio.iss" "/DApplicationVersion=0.3.0"
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed ($LASTEXITCODE)" }
 
       - name: Upload installer
