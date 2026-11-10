@@ -65,7 +65,7 @@ def replace_regex_once(rel: str, pattern: str, replacement: str) -> None:
 replace_exact(
     "CMakeLists.txt",
     "project(KoordASIO VERSION 2.3.1 LANGUAGES NONE)",
-    "project(LEMONAudio VERSION 0.3.0 LANGUAGES NONE)",
+    "project(LEMONAudio VERSION 0.3.1 LANGUAGES NONE)",
 )
 
 # Use Steinberg's first GPLv3-open-source SDK release instead of the old
@@ -250,7 +250,38 @@ qrc = "src/kdasioconfig/app.qrc"
 replace_exact(qrc, '        <file alias="images/logo.png">images/KoordASIO Logo.png</file>\n', "")
 replace_exact(qrc, '        <file alias="images/frame.png">images/Frame.png</file>\n', "")
 
-print("LEMON Audio branding applied to KoordASIO 2.3.1.")
+
+# Lower-latency defaults: keep Shared mode as the safe default, but start at
+# 64 samples instead of 128. The 32-sample option remains available for systems
+# that can sustain it without underruns.
+replace_exact(
+    "src/kdasioconfig/configmodel.cpp",
+    "setInstallDefaults(false, 128)",
+    "setInstallDefaults(false, 64)",
+    expected=3,
+)
+replace_exact(
+    "src/kdasioconfig/configmodel.h",
+    "int bufferSizeSamples = 128",
+    "int bufferSizeSamples = 64",
+)
+replace_exact(
+    "src/kdasioconfig/main.cpp",
+    "int bufferSize = 128;",
+    "int bufferSize = 64;",
+)
+
+# Verify the exact name exposed to ASIO hosts and in the Windows ASIO registry.
+asio_registry = read("src/flexasio/FlexASIO/flexasio.rgs")
+asio_host = read("src/flexasio/FlexASIO/cflexasio.cpp")
+if "ForceRemove LEMON Audio" not in asio_registry:
+    raise RuntimeError("ASIO registry key does not advertise LEMON Audio")
+if "val Description = s 'LEMON Audio'" not in asio_registry:
+    raise RuntimeError("ASIO registry Description is not exactly LEMON Audio")
+if 'strcpy_s(name, 32, "LEMON Audio");' not in asio_host:
+    raise RuntimeError("IASIO::getDriverName() is not exactly LEMON Audio")
+
+print("LEMON Audio branding and 64-sample low-latency defaults applied to KoordASIO 2.3.1.")
 print(f"COM CLSID: {{{DRIVER_GUID}}}")
 print(f"Type library ID: {{{TYPELIB_GUID}}}")
 print("ASIO SDK: 2.3.4 (GPLv3 option)")

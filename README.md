@@ -30,7 +30,7 @@ GitHub Actions uses a hosted Windows runner with MSVC, CMake, Ninja, Qt and Inno
 2. Open FL Studio and go to **Options → Audio Settings**.
 3. Select **LEMON Audio** in the device list.
 4. Open its ASIO panel and choose the USB microphone under Input and USB headphones under Output.
-5. Start with Shared mode and a 128-sample buffer. Test playback and recording before trying smaller buffers or Exclusive mode.
+5. Start with Shared mode and a 64-sample buffer for lower delay. If you hear clicks, pops, or dropouts, raise it to 128; if 64 is stable, test 32. Keep Exclusive mode as an optional experiment rather than the default.
 
 The actual latency and stability depend on the two devices and their clocks. Start with a stable setting first; do not assume a smaller buffer will always work better.
 
@@ -39,6 +39,7 @@ The actual latency and stability depend on the two devices and their clocks. Sta
 - The older root-level 0.1.x application remains a device-enumeration prototype; it is not the ASIO driver.
 - The 0.2.0 WASAPI monitor prototype is separate and is not used by this driver.
 - This branch has not yet been validated on your exact USB microphone/headphone pair or in your installed FL Studio. A green CI build only confirms compilation and packaging, not real-world audio quality.
+- Upgrades preserve an existing user's saved buffer choice. On an existing installation, open LEMON Audio Control and choose 64 samples manually; fresh installs default to 64.
 - Do not install it on top of KoordASIO if you want to compare the two. The COM registration and configuration paths are separated, but test one driver at a time.
 
 ## Licensing
