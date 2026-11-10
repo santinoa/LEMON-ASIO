@@ -95,6 +95,10 @@ replace_exact(
     'PROJECT_DESCRIPTION="LEMON Audio ASIO-compatible Driver DLL"',
 )
 
+# The self-test target must link to the renamed DLL target as well.
+test_cmake = "src/flexasio/FlexASIOTest/CMakeLists.txt"
+replace_exact(test_cmake, "PRIVATE KoordASIO", "PRIVATE LEMONAudio")
+
 # The ASIO registry name, COM ProgID and class identifier must all be unique.
 rgs = "src/flexasio/FlexASIO/flexasio.rgs"
 replace_exact(rgs, "koordasio.KoordASIO.1", "lemonaudio.LEMONAudio.1", expected=2)
