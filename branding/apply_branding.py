@@ -148,7 +148,7 @@ replace_exact(
 
 # Control-panel target name and version macro.
 gui_cmake = "src/kdasioconfig/CMakeLists.txt"
-replace_exact(gui_cmake, "KOORDASIO_ROOT_CMAKE", "LEMON_AUDIO_ROOT_CMAKE")
+replace_all(gui_cmake, "KOORDASIO_ROOT_CMAKE", "LEMON_AUDIO_ROOT_CMAKE", minimum=2)
 replace_exact(
     gui_cmake,
     'project\\\\(KoordASIO VERSION ([0-9.]+)',
