@@ -65,7 +65,7 @@ def replace_regex_once(rel: str, pattern: str, replacement: str) -> None:
 replace_exact(
     "CMakeLists.txt",
     "project(KoordASIO VERSION 2.3.1 LANGUAGES NONE)",
-    "project(LEMONAudio VERSION 0.3.4 LANGUAGES NONE)",
+    "project(LEMONAudio VERSION 0.3.5 LANGUAGES NONE)",
 )
 
 # Use Steinberg's first GPLv3-open-source SDK release instead of the old
@@ -360,78 +360,9 @@ if "host_supports_overload" not in overload_header:
 if "preparedState.callbacks.asioMessage(kAsioOverload, 0, nullptr, nullptr)" not in overload_engine:
     raise RuntimeError("PortAudio xrun-to-ASIO notification is missing")
 
-print("LEMON Audio 0.3.4 branding, Exclusive/32-sample defaults, ASIO overload reporting and experimental WASAPI full-duplex event scheduling applied.")
+print("LEMON Audio 0.3.5 branding, Exclusive/32-sample defaults and ASIO overload reporting applied; original PortAudio full-duplex polling retained for stability.")
 print(f"COM CLSID: {{{DRIVER_GUID}}}")
 print(f"Type library ID: {{{TYPELIB_GUID}}}")
 print("ASIO SDK: 2.3.4 (GPLv3 option)")
 
-
-# Experimental WASAPI full-duplex Exclusive event scheduling.
-#
-# PortAudio normally forces polling whenever input and output are opened
-# together. LEMON tests event-driven full-duplex only when BOTH endpoints
-# are Exclusive. Shared and mixed-mode streams stay on polling.
-wasapi = "src/portaudio/src/hostapi/wasapi/pa_win_wasapi.c"
-
-replace_exact(
-    wasapi,
-    """        else
-        if (fullDuplex)
-            stream->in.streamFlags = 0; // polling interface is implemented for full-duplex mode also
-""",
-    """        else
-        if (fullDuplex)
-        {
-            // The output stream info is available here even though the output
-            // IAudioClient has not been created yet. Decide the duplex mode
-            // before initializing this input endpoint.
-            const PaWasapiStreamInfo *duplexOutputInfo =
-                (outputParameters != NULL && outputParameters->hostApiSpecificStreamInfo != NULL)
-                ? (const PaWasapiStreamInfo *)outputParameters->hostApiSpecificStreamInfo : NULL;
-            const BOOL duplexOutputExclusive =
-                duplexOutputInfo != NULL &&
-                duplexOutputInfo->hostApiType == paWASAPI &&
-                (duplexOutputInfo->flags & paWinWasapiExclusive);
-            if (!(stream->in.shareMode == AUDCLNT_SHAREMODE_EXCLUSIVE && duplexOutputExclusive))
-                stream->in.streamFlags = 0; // Mixed/Shared duplex uses polling
-        }
-""",
-)
-replace_exact(
-    wasapi,
-    """        else
-        if (fullDuplex)
-            stream->out.streamFlags = 0; // polling interface is implemented for full-duplex mode also
-""",
-    """        else
-        if (fullDuplex &&
-            !(stream->in.shareMode == AUDCLNT_SHAREMODE_EXCLUSIVE &&
-              stream->out.shareMode == AUDCLNT_SHAREMODE_EXCLUSIVE))
-            stream->out.streamFlags = 0; // Mixed/Shared duplex uses polling
-""",
-)
-replace_exact(
-    wasapi,
-    """    // Waiting on all events in case of Full-Duplex/Exclusive mode.
-    if ((stream->in.clientProc != NULL) && (stream->out.clientProc != NULL))
-    {
-        waitAllEvents = (stream->in.shareMode == AUDCLNT_SHAREMODE_EXCLUSIVE) &&
-            (stream->out.shareMode == AUDCLNT_SHAREMODE_EXCLUSIVE);
-    }
-""",
-    """    // LEMON experimental full-duplex mode waits for EITHER endpoint.
-    // Separate USB devices do not share a hardware clock and their event
-    // periods need not line up. Waiting for both at once can delay a ready
-    // capture or render buffer. ProcThreadEvent services each signaled side
-    // independently through PortAudio's buffer processor.
-    waitAllEvents = FALSE;
-""",
-)
-wasapi_text = read(wasapi)
-if ("duplexOutputExclusive" not in wasapi_text or
-    "stream->out.streamFlags = 0; // Mixed/Shared duplex uses polling" not in wasapi_text):
-    raise RuntimeError("Exclusive/mixed full-duplex mode selection patch is incomplete")
-if ("waitAllEvents = FALSE;" not in wasapi_text or
-    "ProcThreadEvent services each signaled side" not in wasapi_text):
-    raise RuntimeError("Exclusive event scheduling patch verification failed")
 
