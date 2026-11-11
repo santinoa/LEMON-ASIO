@@ -65,7 +65,7 @@ def replace_regex_once(rel: str, pattern: str, replacement: str) -> None:
 replace_exact(
     "CMakeLists.txt",
     "project(KoordASIO VERSION 2.3.1 LANGUAGES NONE)",
-    "project(LEMONAudio VERSION 0.3.1 LANGUAGES NONE)",
+    "project(LEMONAudio VERSION 0.3.2 LANGUAGES NONE)",
 )
 
 # Use Steinberg's first GPLv3-open-source SDK release instead of the old
@@ -251,25 +251,45 @@ replace_exact(qrc, '        <file alias="images/logo.png">images/KoordASIO Logo.
 replace_exact(qrc, '        <file alias="images/frame.png">images/Frame.png</file>\n', "")
 
 
-# Lower-latency defaults: keep Shared mode as the safe default, but start at
-# 64 samples instead of 128. The 32-sample option remains available for systems
-# that can sustain it without underruns.
+# Low-latency defaults: WASAPI Exclusive bypasses the shared Windows audio
+# engine path. Start at 32 samples; Shared remains available as a fallback.
 replace_exact(
     "src/kdasioconfig/configmodel.cpp",
     "setInstallDefaults(false, 128)",
-    "setInstallDefaults(false, 64)",
+    "setInstallDefaults(true, 32)",
     expected=3,
 )
 replace_exact(
     "src/kdasioconfig/configmodel.h",
     "int bufferSizeSamples = 128",
-    "int bufferSizeSamples = 64",
+    "int bufferSizeSamples = 32",
 )
 replace_exact(
     "src/kdasioconfig/main.cpp",
     "int bufferSize = 128;",
-    "int bufferSize = 64;",
+    "int bufferSize = 32;",
 )
+
+# One-time migration for existing installations. Load the user's current TOML
+# first, then switch only the mode to Exclusive. The saved devices and buffer
+# (including 32 samples) are preserved; subsequent user choices are respected.
+replace_exact(
+    "src/kdasioconfig/configmodel.cpp",
+    """    applyTomlValues(pr.value);
+    healPinnedDevices();
+    m_loading = false;""",
+    """    applyTomlValues(pr.value);
+
+    const QString exclusiveMigrationKey = QStringLiteral("exclusiveDefaultV032Applied");
+    if (!m_settings.value(exclusiveMigrationKey, false).toBool()) {
+        m_exclusiveMode = true;
+        m_settings.setValue(exclusiveMigrationKey, true);
+    }
+
+    healPinnedDevices();
+    m_loading = false;""",
+)
+
 
 # Verify the exact name exposed to ASIO hosts and in the Windows ASIO registry.
 asio_registry = read("src/flexasio/FlexASIO/flexasio.rgs")
@@ -281,7 +301,7 @@ if "val Description = s 'LEMON Audio'" not in asio_registry:
 if 'strcpy_s(name, 32, "LEMON Audio");' not in asio_host:
     raise RuntimeError("IASIO::getDriverName() is not exactly LEMON Audio")
 
-print("LEMON Audio branding and 64-sample low-latency defaults applied to KoordASIO 2.3.1.")
+print("LEMON Audio branding and Exclusive/32-sample low-latency defaults applied to KoordASIO 2.3.1.")
 print(f"COM CLSID: {{{DRIVER_GUID}}}")
 print(f"Type library ID: {{{TYPELIB_GUID}}}")
 print("ASIO SDK: 2.3.4 (GPLv3 option)")
