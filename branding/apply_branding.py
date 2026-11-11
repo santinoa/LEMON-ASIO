@@ -65,7 +65,7 @@ def replace_regex_once(rel: str, pattern: str, replacement: str) -> None:
 replace_exact(
     "CMakeLists.txt",
     "project(KoordASIO VERSION 2.3.1 LANGUAGES NONE)",
-    "project(LEMONAudio VERSION 0.3.5 LANGUAGES NONE)",
+    "project(LEMONAudio VERSION 0.3.6 LANGUAGES NONE)",
 )
 
 # Use Steinberg's first GPLv3-open-source SDK release instead of the old
@@ -244,6 +244,37 @@ replace_regex_once(
     r'^                Image \{\n                    source: "qrc:/images/frame\.png".*?^                \}\n',
     footer_brand,
 )
+
+# LEMON Audio 0.3.6 visual refresh: wider layout, clearer hierarchy and consistent controls.
+replace_exact(qml, "    width: 302", "    width: 420")
+replace_exact(qml, "    minimumWidth: 302", "    minimumWidth: 380")
+replace_exact(qml, '    title: "LEMON Audio Control"', '    title: "LEMON Audio | Control Panel"')
+replace_exact(qml, 'readonly property color clrText: "#f0f0f0"', 'readonly property color clrText: "#F2F4F5"')
+replace_exact(qml, 'readonly property color clrMuted: "#9a9a9a"', 'readonly property color clrMuted: "#9AA1A8"')
+replace_exact(qml, '        color: "transparent"\n        border.color: clrSectionBorder', '        color: "#181B1F"\n        border.color: clrSectionBorder')
+replace_exact(qml, '        radius: 8\n        implicitHeight: sectionColumn.implicitHeight + 20', '        radius: 10\n        implicitHeight: sectionColumn.implicitHeight + 26')
+replace_exact(qml, '            anchors.margins: 10\n            spacing: 8', '            anchors.margins: 13\n            spacing: 10')
+replace_exact(qml, '                font.pixelSize: 11\n                color: "#aaa"', '                font.pixelSize: 10\n                font.letterSpacing: 0.8\n                color: "#B6F36A"')
+replace_exact(qml, '            Layout.preferredHeight: 62', '            Layout.preferredHeight: 76')
+replace_exact(qml, '                anchors.bottomMargin: 10\n                anchors.leftMargin: 8\n                anchors.rightMargin: 6\n                spacing: 12', '                anchors.bottomMargin: 12\n                anchors.leftMargin: 16\n                anchors.rightMargin: 14\n                spacing: 14')
+replace_exact(qml, '            Layout.topMargin: 16\n            Layout.bottomMargin: 16\n            Layout.leftMargin: 8\n            Layout.rightMargin: 8\n            spacing: 20', '            Layout.topMargin: 14\n            Layout.bottomMargin: 14\n            Layout.leftMargin: 16\n            Layout.rightMargin: 16\n            spacing: 14')
+replace_exact(qml, '            Layout.preferredHeight: 34\n            color: clrBg', '            Layout.preferredHeight: 40\n            color: clrBg')
+replace_exact(qml, '                anchors.leftMargin: 5\n                anchors.rightMargin: 5', '                anchors.leftMargin: 12\n                anchors.rightMargin: 12')
+# Match combo boxes to the refreshed neutral palette.
+replace_exact("src/kdasioconfig/StyledComboBox.qml", "    Layout.preferredHeight: 36", "    Layout.preferredHeight: 40")
+replace_exact("src/kdasioconfig/StyledComboBox.qml", "    font.pixelSize: 12", "    font.pixelSize: 13")
+replace_all("src/kdasioconfig/StyledComboBox.qml", 'color: "#f0f0f0"', 'color: "#F2F4F5"', minimum=2)
+replace_exact("src/kdasioconfig/StyledComboBox.qml", 'color: "#000000"\n        border.color: "#444"\n        radius: 5', 'color: "#202429"\n        border.color: "#3A424A"\n        radius: 8')
+replace_exact("src/kdasioconfig/StyledComboBox.qml", 'border.color: "#444"\n            color: "#000000"\n            radius: 5', 'border.color: "#3A424A"\n            color: "#202429"\n            radius: 8')
+replace_exact("src/kdasioconfig/StyledCheckBox.qml", 'color: control.down ? "#2a2a2a" : "#353535"', 'color: control.down ? "#252B30" : "#202429"')
+replace_exact("src/kdasioconfig/StyledCheckBox.qml", 'border.color: control.enabled ? "#666" : "#444"', 'border.color: control.enabled ? "#65717B" : "#444B52"')
+replace_exact("src/kdasioconfig/StyledCheckBox.qml", 'color: "#f7a219"', 'color: "#B6F36A"')
+replace_exact("src/kdasioconfig/StyledCheckBox.qml", 'color: control.enabled ? "#f0f0f0" : "#777"', 'color: control.enabled ? "#F2F4F5" : "#777"')
+replace_exact("src/kdasioconfig/BufferSizeDisplay.qml", 'border.color: "#17191A"', 'border.color: "#3A424A"')
+replace_exact("src/kdasioconfig/BufferSizeDisplay.qml", 'color: "#FF9B12"', 'color: "#B6F36A"')
+replace_exact("src/kdasioconfig/BufferSizeSlider.qml", 'readonly property color grooveGray: "#2a2c2e"', 'readonly property color grooveGray: "#30363D"')
+replace_exact("src/kdasioconfig/BufferSizeSlider.qml", 'color: "#BF740D"', 'color: "#83B94B"')
+replace_exact("src/kdasioconfig/BufferSizeSlider.qml", 'color: "#FF9B12"', 'color: "#B6F36A"')
 
 # Remove the two upstream brand graphics that the customized panel no longer uses.
 qrc = "src/kdasioconfig/app.qrc"
