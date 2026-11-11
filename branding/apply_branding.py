@@ -65,7 +65,7 @@ def replace_regex_once(rel: str, pattern: str, replacement: str) -> None:
 replace_exact(
     "CMakeLists.txt",
     "project(KoordASIO VERSION 2.3.1 LANGUAGES NONE)",
-    "project(LEMONAudio VERSION 0.3.2 LANGUAGES NONE)",
+    "project(LEMONAudio VERSION 0.3.3 LANGUAGES NONE)",
 )
 
 # Use Steinberg's first GPLv3-open-source SDK release instead of the old
@@ -301,7 +301,80 @@ if "val Description = s 'LEMON Audio'" not in asio_registry:
 if 'strcpy_s(name, 32, "LEMON Audio");' not in asio_host:
     raise RuntimeError("IASIO::getDriverName() is not exactly LEMON Audio")
 
-print("LEMON Audio branding and Exclusive/32-sample low-latency defaults applied to KoordASIO 2.3.1.")
+
+# ASIO 2.3 overload reporting: only report real PortAudio xrun flags to hosts
+# that explicitly advertise support for kAsioOverload.
+replace_exact(
+    "src/flexasio/FlexASIO/cflexasio.cpp",
+    """            ASIOError future(long selector, void *) throw() final {
+                return Enter("future()", [&] {
+                    Log() << "Requested future selector: " << ::dechamps_ASIOUtil::GetASIOFutureSelectorString(selector);
+                    throw ASIOException(ASE_InvalidParameter, "future() is not supported");
+                });
+            }""",
+    """            ASIOError future(long selector, void *) throw() final {
+                if (selector == kAsioCanReportOverload) {
+                    return Enter("future(kAsioCanReportOverload)", [] {}) == ASE_OK
+                        ? ASE_SUCCESS : ASE_HWMalfunction;
+                }
+                return Enter("future()", [&] {
+                    Log() << "Requested future selector: " << ::dechamps_ASIOUtil::GetASIOFutureSelectorString(selector);
+                    throw ASIOException(ASE_InvalidParameter, "future() is not supported");
+                });
+            }""",
+)
+replace_exact(
+    "src/flexasio/FlexASIO/flexasio.h",
+    """                const bool host_supports_timeinfo;
+                enum class OutputReadyState""",
+    """                const bool host_supports_timeinfo;
+                const bool host_supports_overload;
+                enum class OutputReadyState""",
+)
+replace_exact(
+    "src/flexasio/FlexASIO/flexasio.cpp",
+    """        Log() << "The host " << (result ? "supports" : "does not support") << " time info";
+        return result;
+    }()),
+        outputReadyState""",
+    """        Log() << "The host " << (result ? "supports" : "does not support") << " time info";
+        return result;
+    }()),
+        host_supports_overload([&] {
+        Log() << "Checking if the host supports ASIO overload notifications";
+        const bool result = preparedState.callbacks.asioMessage &&
+            Message(preparedState.callbacks.asioMessage, kAsioSelectorSupported, kAsioOverload, NULL, NULL) == 1;
+        Log() << "The host " << (result ? "supports" : "does not support") << " overload notifications";
+        return result;
+    }()),
+        outputReadyState""",
+)
+replace_exact(
+    "src/flexasio/FlexASIO/flexasio.cpp",
+    """        if (statusFlags & paOutputUnderflow && IsLoggingEnabled())
+            Log() << "OUTPUT UNDERFLOW detected (gaps were inserted in the output)";
+
+        const auto inputSampleSizeInBytes""",
+    """        if (statusFlags & paOutputUnderflow && IsLoggingEnabled())
+            Log() << "OUTPUT UNDERFLOW detected (gaps were inserted in the output)";
+
+        const auto overloadFlags = paInputOverflow | paInputUnderflow | paOutputOverflow | paOutputUnderflow;
+        if (host_supports_overload && (statusFlags & overloadFlags) != 0) {
+            if (IsLoggingEnabled()) Log() << "Reporting PortAudio xrun to ASIO host via kAsioOverload";
+            preparedState.callbacks.asioMessage(kAsioOverload, 0, nullptr, nullptr);
+        }
+
+        const auto inputSampleSizeInBytes""",
+)
+# Verify overload reporting is present in both the ASIO capability and callback path.
+const hostCode = read("src/flexasio/FlexASIO/cflexasio.cpp");
+const engineCode = read("src/flexasio/FlexASIO/flexasio.cpp");
+if "selector == kAsioCanReportOverload" not in hostCode:
+    raise RuntimeError("ASIO kAsioCanReportOverload capability is missing")
+if "preparedState.callbacks.asioMessage(kAsioOverload, 0, nullptr, nullptr)" not in engineCode:
+    raise RuntimeError("PortAudio xrun-to-ASIO notification is missing")
+
+print("LEMON Audio branding, Exclusive/32-sample defaults and ASIO overload reporting applied to KoordASIO 2.3.1.")
 print(f"COM CLSID: {{{DRIVER_GUID}}}")
 print(f"Type library ID: {{{TYPELIB_GUID}}}")
 print("ASIO SDK: 2.3.4 (GPLv3 option)")
