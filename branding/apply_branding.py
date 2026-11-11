@@ -379,9 +379,22 @@ replace_exact(
         if (fullDuplex)
             stream->in.streamFlags = 0; // polling interface is implemented for full-duplex mode also
 """,
-    """        // LEMON: keep the Exclusive event callback flag for full-duplex.
-        // The final mode decision is made after both endpoint share modes
-        // are known, so mixed-mode streams can still fall back to polling.
+    """        else
+        if (fullDuplex)
+        {
+            // The output stream info is available here even though the output
+            // IAudioClient has not been created yet. Decide the duplex mode
+            // before initializing this input endpoint.
+            const PaWasapiStreamInfo *duplexOutputInfo =
+                (outputParameters != NULL && outputParameters->hostApiSpecificStreamInfo != NULL)
+                ? (const PaWasapiStreamInfo *)outputParameters->hostApiSpecificStreamInfo : NULL;
+            const BOOL duplexOutputExclusive =
+                duplexOutputInfo != NULL &&
+                duplexOutputInfo->hostApiType == paWASAPI &&
+                (duplexOutputInfo->flags & paWinWasapiExclusive);
+            if (!(stream->in.shareMode == AUDCLNT_SHAREMODE_EXCLUSIVE && duplexOutputExclusive))
+                stream->in.streamFlags = 0; // Mixed/Shared duplex uses polling
+        }
 """,
 )
 replace_exact(
@@ -390,31 +403,11 @@ replace_exact(
         if (fullDuplex)
             stream->out.streamFlags = 0; // polling interface is implemented for full-duplex mode also
 """,
-    """        // LEMON: keep the Exclusive event callback flag for full-duplex.
-        // The final mode decision is made after both endpoint share modes
-        // are known, so mixed-mode streams can still fall back to polling.
-""",
-)
-replace_exact(
-    wasapi,
-    """    // log full-duplex
-    if (fullDuplex)
-        PRINT(("WASAPI::OpenStream: full-duplex mode\n"));
-""",
-    """    // log full-duplex
-    if (fullDuplex)
-        PRINT(("WASAPI::OpenStream: full-duplex mode\n"));
-
-    // LEMON experimental path: use event-driven scheduling only when BOTH
-    // USB endpoints are Exclusive. If one endpoint is Shared (or otherwise
-    // not event-driven), keep both on polling so ProcThreadPoll handles them.
-    if (fullDuplex &&
-        !(stream->in.shareMode == AUDCLNT_SHAREMODE_EXCLUSIVE &&
-          stream->out.shareMode == AUDCLNT_SHAREMODE_EXCLUSIVE))
-    {
-        stream->in.streamFlags &= ~AUDCLNT_STREAMFLAGS_EVENTCALLBACK;
-        stream->out.streamFlags &= ~AUDCLNT_STREAMFLAGS_EVENTCALLBACK;
-    }
+    """        else
+        if (fullDuplex &&
+            !(stream->in.shareMode == AUDCLNT_SHAREMODE_EXCLUSIVE &&
+              stream->out.shareMode == AUDCLNT_SHAREMODE_EXCLUSIVE))
+            stream->out.streamFlags = 0; // Mixed/Shared duplex uses polling
 """,
 )
 replace_exact(
@@ -435,9 +428,10 @@ replace_exact(
 """,
 )
 wasapi_text = read(wasapi)
-if ("stream->in.streamFlags = 0; // polling interface is implemented for full-duplex mode also" in wasapi_text or
-    "stream->out.streamFlags = 0; // polling interface is implemented for full-duplex mode also" in wasapi_text):
-    raise RuntimeError("Full-duplex Exclusive stream is still being forced to polling")
+if ("duplexOutputExclusive" not in wasapi_text or
+    "stream->out.streamFlags = 0; // Mixed/Shared duplex uses polling" not in wasapi_text):
+    raise RuntimeError("Exclusive/mixed full-duplex mode selection patch is incomplete")
 if ("waitAllEvents = FALSE;" not in wasapi_text or
     "ProcThreadEvent services each signaled side" not in wasapi_text):
     raise RuntimeError("Exclusive event scheduling patch verification failed")
+
