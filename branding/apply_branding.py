@@ -367,11 +367,11 @@ replace_exact(
         const auto inputSampleSizeInBytes""",
 )
 # Verify overload reporting is present in both the ASIO capability and callback path.
-const hostCode = read("src/flexasio/FlexASIO/cflexasio.cpp");
-const engineCode = read("src/flexasio/FlexASIO/flexasio.cpp");
-if "selector == kAsioCanReportOverload" not in hostCode:
+overload_host = read("src/flexasio/FlexASIO/cflexasio.cpp")
+overload_engine = read("src/flexasio/FlexASIO/flexasio.cpp")
+if "selector == kAsioCanReportOverload" not in overload_host:
     raise RuntimeError("ASIO kAsioCanReportOverload capability is missing")
-if "preparedState.callbacks.asioMessage(kAsioOverload, 0, nullptr, nullptr)" not in engineCode:
+if "preparedState.callbacks.asioMessage(kAsioOverload, 0, nullptr, nullptr)" not in overload_engine:
     raise RuntimeError("PortAudio xrun-to-ASIO notification is missing")
 
 print("LEMON Audio branding, Exclusive/32-sample defaults and ASIO overload reporting applied to KoordASIO 2.3.1.")
