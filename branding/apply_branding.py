@@ -282,6 +282,22 @@ replace_exact(qrc, '        <file alias="images/logo.png">images/KoordASIO Logo.
 replace_exact(qrc, '        <file alias="images/frame.png">images/Frame.png</file>\n', "")
 
 
+# Experimental output scheduling test: keep WASAPI Exclusive, but force
+# PortAudio's supported polling path for output-only streams. PortAudio already
+# selects polling automatically for full-duplex streams.
+replace_exact(
+    "src/flexasio/FlexASIO/flexasio.cpp",
+    """\t\t\t\tif (config.output.wasapiExclusiveMode) {
+\t\t\t\t\toutput_wasapi_stream_info.flags |= paWinWasapiExclusive;
+\t\t\t\t\texclusivity = StreamExclusivity::EXCLUSIVE;
+\t\t\t\t}""",
+    """\t\t\t\tif (config.output.wasapiExclusiveMode) {
+\t\t\t\t\toutput_wasapi_stream_info.flags |= paWinWasapiExclusive;
+\t\t\t\t\toutput_wasapi_stream_info.flags |= paWinWasapiPolling;
+\t\t\t\t\texclusivity = StreamExclusivity::EXCLUSIVE;
+\t\t\t\t}""",
+)
+
 # Low-latency defaults: WASAPI Exclusive bypasses the shared Windows audio
 # engine path. Start at 32 samples; Shared remains available as a fallback.
 replace_exact(
