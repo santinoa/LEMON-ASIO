@@ -325,7 +325,7 @@ replace_regex_once(
 )
 replace_regex_once(
     "src/flexasio/FlexASIO/flexasio.cpp",
-    r'(\}\(\),)\s*(outputReadyState\()',
+    r'(\}\(\)\),)\s*(outputReadyState\()',
     """\\1
         host_supports_overload([&] {
         Log() << "Checking if the host supports ASIO overload notifications";
