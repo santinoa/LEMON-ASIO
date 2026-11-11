@@ -263,7 +263,7 @@ replace_exact(qml, '                anchors.leftMargin: 5\n                ancho
 # Match combo boxes to the refreshed neutral palette.
 replace_exact("src/kdasioconfig/StyledComboBox.qml", "    Layout.preferredHeight: 36", "    Layout.preferredHeight: 40")
 replace_exact("src/kdasioconfig/StyledComboBox.qml", "    Layout.preferredHeight: 40\n    font.pixelSize: 12", "    Layout.preferredHeight: 40\n    font.pixelSize: 13")
-replace_all("src/kdasioconfig/StyledComboBox.qml", 'color: "#f0f0f0"', 'color: "#F2F4F5"', minimum=2)
+replace_all("src/kdasioconfig/StyledComboBox.qml", 'color: "#f0f0f0"', 'color: "#F2F4F5"', minimum=1)
 replace_exact("src/kdasioconfig/StyledComboBox.qml", 'color: "#000000"\n        border.color: "#444"\n        radius: 5', 'color: "#202429"\n        border.color: "#3A424A"\n        radius: 8')
 replace_exact("src/kdasioconfig/StyledComboBox.qml", 'border.color: "#444"\n            color: "#000000"\n            radius: 5', 'border.color: "#3A424A"\n            color: "#202429"\n            radius: 8')
 replace_exact("src/kdasioconfig/StyledCheckBox.qml", 'color: control.down ? "#2a2a2a" : "#353535"', 'color: control.down ? "#252B30" : "#202429"')
