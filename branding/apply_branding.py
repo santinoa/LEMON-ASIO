@@ -304,42 +304,29 @@ if 'strcpy_s(name, 32, "LEMON Audio");' not in asio_host:
 
 # ASIO 2.3 overload reporting: only report real PortAudio xrun flags to hosts
 # that explicitly advertise support for kAsioOverload.
-replace_exact(
+replace_regex_once(
     "src/flexasio/FlexASIO/cflexasio.cpp",
-    """            ASIOError future(long selector, void *) throw() final {
-                return Enter("future()", [&] {
-                    Log() << "Requested future selector: " << ::dechamps_ASIOUtil::GetASIOFutureSelectorString(selector);
-                    throw ASIOException(ASE_InvalidParameter, "future() is not supported");
-                });
-            }""",
-    """            ASIOError future(long selector, void *) throw() final {
-                if (selector == kAsioCanReportOverload) {
-                    return Enter("future(kAsioCanReportOverload)", [] {}) == ASE_OK
-                        ? ASE_SUCCESS : ASE_HWMalfunction;
-                }
-                return Enter("future()", [&] {
-                    Log() << "Requested future selector: " << ::dechamps_ASIOUtil::GetASIOFutureSelectorString(selector);
-                    throw ASIOException(ASE_InvalidParameter, "future() is not supported");
-                });
-            }""",
+    r'ASIOError future\(long selector, void \*\) throw\(\) final \{\s*return Enter\("future\(\)", \[&\] \{\s*Log\(\) << "Requested future selector: " << ::dechamps_ASIOUtil::GetASIOFutureSelectorString\(selector\);\s*throw ASIOException\(ASE_InvalidParameter, "future\(\) is not supported"\);\s*\}\);\s*\}',
+    """ASIOError future(long selector, void *) throw() final {
+    if (selector == kAsioCanReportOverload) {
+        return Enter("future(kAsioCanReportOverload)", [] {}) == ASE_OK
+            ? ASE_SUCCESS : ASE_HWMalfunction;
+    }
+    return Enter("future()", [&] {
+        Log() << "Requested future selector: " << ::dechamps_ASIOUtil::GetASIOFutureSelectorString(selector);
+        throw ASIOException(ASE_InvalidParameter, "future() is not supported");
+    });
+}""",
 )
-replace_exact(
+replace_regex_once(
     "src/flexasio/FlexASIO/flexasio.h",
-    """                const bool host_supports_timeinfo;
-                enum class OutputReadyState""",
-    """                const bool host_supports_timeinfo;
-                const bool host_supports_overload;
-                enum class OutputReadyState""",
+    r'(const bool host_supports_timeinfo;)',
+    r'\1\n                const bool host_supports_overload;',
 )
-replace_exact(
+replace_regex_once(
     "src/flexasio/FlexASIO/flexasio.cpp",
-    """        Log() << "The host " << (result ? "supports" : "does not support") << " time info";
-        return result;
-    }()),
-        outputReadyState""",
-    """        Log() << "The host " << (result ? "supports" : "does not support") << " time info";
-        return result;
-    }()),
+    r'(\}\(\),)\s*(outputReadyState\()',
+    """\\1
         host_supports_overload([&] {
         Log() << "Checking if the host supports ASIO overload notifications";
         const bool result = preparedState.callbacks.asioMessage &&
@@ -347,16 +334,12 @@ replace_exact(
         Log() << "The host " << (result ? "supports" : "does not support") << " overload notifications";
         return result;
     }()),
-        outputReadyState""",
+        \\2""",
 )
-replace_exact(
+replace_regex_once(
     "src/flexasio/FlexASIO/flexasio.cpp",
-    """        if (statusFlags & paOutputUnderflow && IsLoggingEnabled())
-            Log() << "OUTPUT UNDERFLOW detected (gaps were inserted in the output)";
-
-        const auto inputSampleSizeInBytes""",
-    """        if (statusFlags & paOutputUnderflow && IsLoggingEnabled())
-            Log() << "OUTPUT UNDERFLOW detected (gaps were inserted in the output)";
+    r'(if \(statusFlags & paOutputUnderflow && IsLoggingEnabled\(\)\)\s*Log\(\) << "OUTPUT UNDERFLOW detected \(gaps were inserted in the output\)";)\s*(const auto inputSampleSizeInBytes)',
+    """\\1
 
         const auto overloadFlags = paInputOverflow | paInputUnderflow | paOutputOverflow | paOutputUnderflow;
         if (host_supports_overload && (statusFlags & overloadFlags) != 0) {
@@ -364,13 +347,16 @@ replace_exact(
             preparedState.callbacks.asioMessage(kAsioOverload, 0, nullptr, nullptr);
         }
 
-        const auto inputSampleSizeInBytes""",
+        \\2""",
 )
 # Verify overload reporting is present in both the ASIO capability and callback path.
 overload_host = read("src/flexasio/FlexASIO/cflexasio.cpp")
 overload_engine = read("src/flexasio/FlexASIO/flexasio.cpp")
+overload_header = read("src/flexasio/FlexASIO/flexasio.h")
 if "selector == kAsioCanReportOverload" not in overload_host:
     raise RuntimeError("ASIO kAsioCanReportOverload capability is missing")
+if "host_supports_overload" not in overload_header:
+    raise RuntimeError("ASIO overload capability state is missing")
 if "preparedState.callbacks.asioMessage(kAsioOverload, 0, nullptr, nullptr)" not in overload_engine:
     raise RuntimeError("PortAudio xrun-to-ASIO notification is missing")
 
