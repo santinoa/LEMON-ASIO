@@ -14,14 +14,16 @@ LEMON Audio is being built for a practical setup: use one USB device as the reco
 - A branded LEMON Audio control panel and Windows x64 installer.
 - A unique COM class ID and separate registry/configuration namespace so this driver does not overwrite the upstream KoordASIO registration.
 
-The upstream code is referenced as a Git submodule at a fixed commit. The build workflow applies a small, auditable branding/licensing script in the GitHub Actions workspace; it does not rewrite the upstream project history.
+The upstream code is referenced as a Git submodule at a fixed commit. The build workflow applies an auditable branding/licensing and compatibility patch in the GitHub Actions workspace; it does not rewrite the upstream project history.
+
+**0.3.4 experiment:** when both selected WASAPI endpoints are in Exclusive mode, the driver uses each endpoint's event notification instead of polling both devices. It waits for either endpoint to become ready and processes that side through PortAudio's buffer processor. Shared mode and mixed Shared/Exclusive streams retain polling. This tests whether polling cadence is the source of Exclusive-only dropouts; it is not yet an adaptive sample-rate converter and does not guarantee correction of long-term USB clock drift.
 
 ## Build without Visual Studio on your PC
 
 1. Open the Actions tab of this repository.
 2. Choose **Build LEMON Audio (experimental)**.
 3. Select **Run workflow**.
-4. When the run succeeds, download the artifact **LEMON-Audio-0.3.3-Windows-x64**.
+4. When the run succeeds, download the artifact **LEMON-Audio-0.3.4-Windows-x64**.
 
 GitHub Actions uses a hosted Windows runner with MSVC, CMake, Ninja, Qt and Inno Setup. Your own computer only needs to download and run the installer.
 
@@ -33,14 +35,14 @@ GitHub Actions uses a hosted Windows runner with MSVC, CMake, Ninja, Qt and Inno
 4. Open its ASIO panel and choose the USB microphone under Input and USB headphones under Output.
 5. Start with **Exclusive mode and 32 samples** for the lowest delay. If FL Studio cannot open the devices, or you hear clicks, pops, or dropouts, switch back to Shared mode. Exclusive may require both USB devices to support the FL Studio sample rate and prevents other apps from using those devices at the same time.
 
-The actual latency and stability depend on the two USB devices, their native sample rates, their clocks, and the host. The ASIO buffer is only one part of end-to-end latency; Exclusive mode removes one Windows buffering layer but cannot remove latency inside the USB drivers or hardware. Overload notifications help a compatible host identify an actual dropout, but they do not make a CPU-heavy plugin chain finish faster. At 48 kHz, 32 samples give FL Studio about 0.67 ms per audio block; a demanding vocal chain may need 64 or 128 samples to leave enough processing time.
+The actual latency and stability depend on the two USB devices, their native sample rates, their clocks, and the host. The ASIO buffer is only one part of end-to-end latency; Exclusive mode removes one Windows buffering layer but cannot remove latency inside the USB drivers or hardware. Overload notifications help a compatible host identify an actual dropout, but they do not make a CPU-heavy plugin chain finish faster. At 48 kHz, 32 samples give FL Studio about 0.67 ms per audio block. The 0.3.4 event path is experimental: a successful build confirms compilation, not that the independent device clocks are fully synchronized on real hardware.
 
 ## Important status
 
 - The older root-level 0.1.x application remains a device-enumeration prototype; it is not the ASIO driver.
 - The 0.2.0 WASAPI monitor prototype is separate and is not used by this driver.
-- This branch has not yet been validated on your exact USB microphone/headphone pair or in your installed FL Studio. A green CI build only confirms compilation and packaging, not real-world audio quality.
-- Upgrades preserve existing buffer and device selections. On the first LEMON Audio Control launch after upgrading to 0.3.2, the mode changes to Exclusive once; later manual changes to Shared or Exclusive are preserved. Fresh installs start in Exclusive mode at 32 samples.
+- The 0.3.4 event-driven Exclusive full-duplex path has not yet been validated on your exact USB microphone/headphone pair or in FL Studio. A green CI build only confirms compilation and packaging, not real-world audio quality. Long-session clock-drift behavior still needs measurement.
+- Upgrades preserve existing buffer and device selections. On the first LEMON Audio Control launch after upgrading to 0.3.2, the mode changes to Exclusive once; later manual changes to Shared or Exclusive are preserved. Fresh installs start in Exclusive mode at 32 samples. The 0.3.4 experiment does not alter the selected mode or buffer size.
 - Do not install it on top of KoordASIO if you want to compare the two. The COM registration and configuration paths are separated, but test one driver at a time.
 
 ## Licensing
